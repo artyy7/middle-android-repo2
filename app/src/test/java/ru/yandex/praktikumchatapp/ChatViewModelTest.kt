@@ -33,7 +33,11 @@ class ChatViewModelTest {
     fun `send message should update state with MyMessage`() = runTest {
         val message = Message.MyMessage("TestMessage")
 
-        // TODO Задание 5: допишите юнит-тест
+        viewModel.sendMyMessage(message.text)
+
+        val isExists = viewModel.chatState.value.messages.contains(message)
+
+        assert(isExists)
     }
 
     @Test
