@@ -1,9 +1,10 @@
 package ru.yandex.praktikumchatapp.presentation
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.yandex.praktikumchatapp.data.ChatRepository
 
@@ -13,29 +14,37 @@ class ChatViewModel(
 
     private val repository = ChatRepository()
 
-    private val _messages = MutableLiveData<List<Message>>(emptyList())  // TODO Задание 1: замените на Flow
-    val messages: LiveData<List<Message>> = _messages
+    private val _chatState = MutableStateFlow(ChatState())
 
-    // TODO Задание 3: добавьте состояние shouldShowKeyboard
-
-    // TODO Задание 4: замените messages и shouldShowKeyboard на state
+    val chatState = _chatState.asStateFlow()
 
     init {
         viewModelScope.launch {
             while (isWithReplies) {
                 repository.getReplyMessage().collect { response ->
 
-                    val currentMessages = _messages.value ?: emptyList()
-                    _messages.value =
-                        currentMessages + Message.OtherMessage(response)
+                    _chatState.update { currentState ->
+                        val messages = currentState.messages
+                        val newMessages = messages + Message.OtherMessage(response)
 
+                        currentState.copy(
+                            messages = newMessages,
+                            shouldShowKeyboard =
+                                currentState.shouldShowKeyboard || messages.isEmpty()
+                        )
+                    }
                 }
             }
         }
     }
 
     fun sendMyMessage(messageText: String) {
-        val currentMessages = _messages.value ?: emptyList()
-        _messages.value = currentMessages + Message.MyMessage(messageText)
+        _chatState.update { chatState ->
+            chatState.copy(
+                messages = chatState.messages + Message.MyMessage(
+                    messageText
+                )
+            )
+        }
     }
 }

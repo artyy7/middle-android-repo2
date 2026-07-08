@@ -1,5 +1,8 @@
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -33,13 +36,28 @@ class ChatViewModelTest {
     fun `send message should update state with MyMessage`() = runTest {
         val message = Message.MyMessage("TestMessage")
 
-        // TODO Задание 5: допишите юнит-тест
+        viewModel.sendMyMessage(message.text)
+
+        val isExists = viewModel.chatState.value.messages.contains(message)
+
+        assert(isExists)
     }
 
     @Test
     fun testReceiveMessage_concurrentMessages() = runTest {
         val messagesToSend = (1..100).map { Message.MyMessage("Message $it") }
 
-        // TODO Задание 6: допишите юнит-тест
+        coroutineScope {
+            messagesToSend.map { message ->
+                launch {
+                    viewModel.sendMyMessage(message.text)
+                }
+            }.joinAll()
+        }
+
+        val messages = viewModel.chatState.value.messages
+        assert(messages.size == 100)
+
+        assert(messages.containsAll(messagesToSend))
     }
 }
